@@ -4,6 +4,7 @@ import (
   "fmt"
   "context"
   "errors"
+  "time"
   "github.com/gofrs/uuid"
   "github.com/aws/aws-lambda-go/lambda"
   "github.com/aws/aws-sdk-go/aws"
@@ -18,6 +19,7 @@ type MyEvent struct {
   Question string `json:"question"`
   Answer string `json:"answer"`
   Incorrect []string `json:"incorrect"`
+  Created int64 `json:"created"`
 }
 
 type MyItem struct {
@@ -26,6 +28,7 @@ type MyItem struct {
   question string
   answer string
   incorrect []string
+  created int64
 }
 
 func HandleRequest(ctx context.Context, event MyEvent) (string, error) {
@@ -65,6 +68,7 @@ func HandleRequest(ctx context.Context, event MyEvent) (string, error) {
 
   id, err := uuid.NewV4()
   event.Id = id.String()
+  event.Created = time.Now().Unix()
 
   // Create DynamoDB client
   svc := dynamodb.New(sess)
