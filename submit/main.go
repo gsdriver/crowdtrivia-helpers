@@ -33,7 +33,26 @@ type MyItem struct {
 
 func HandleRequest(ctx context.Context, event MyEvent) (string, error) {
   // Validate input
-  // Is token valid? We should be able to find someone with this token in our customer DB
+  fmt.Println(event)
+
+  // Is token valid? Check the TriviaToken DB to see
+  sess, err := session.NewSession(&aws.Config{
+    Region: aws.String("us-east-1")},
+  )
+  svc := dynamodb.New(sess)
+  getInput := &dynamodb.GetItemInput{
+    Key: map[string]*dynamodb.AttributeValue{
+      "token": {
+        S: aws.String(event.Token),
+      },
+    },
+    TableName: aws.String("TriviaTokens"),
+  }
+
+  result, err := svc.GetItem(getInput)
+  if (err != nil) || (result.Item == nil) {
+    return "", errors.New("Invalid token")
+  }
 
   // Are there three incorrect answers? Are all answers different?
   if len(event.Incorrect) != 3 {
@@ -62,18 +81,12 @@ func HandleRequest(ctx context.Context, event MyEvent) (string, error) {
   }
 
   // OK, save to the DB
-  sess, err := session.NewSession(&aws.Config{
-    Region: aws.String("us-east-1")},
-  )
-
   id, err := uuid.NewV4()
   event.Id = id.String()
   event.Created = time.Now().Unix()
 
   // Create DynamoDB client
-  svc := dynamodb.New(sess)
   av, _ := dynamodbattribute.MarshalMap(event)
-fmt.Println(av)
   input := &dynamodb.PutItemInput{
     TableName: aws.String("TriviaQuestions"),
     Item: av,
